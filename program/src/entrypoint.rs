@@ -33,5 +33,9 @@ fn process_instruction(
             log!("Ix:1");
             instruction::process_update_state(accounts, instruction_data)
         }
+        MyProgramInstruction::Authorize => {
+            log!("Ix:2");
+            instruction::process_authorize(accounts, instruction_data)
+        }
     }
 }
