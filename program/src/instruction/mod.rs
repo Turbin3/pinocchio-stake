@@ -81,3 +81,4 @@ mod idl_gen {
         UpdateState,
     }
 }
+
