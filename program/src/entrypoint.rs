@@ -8,7 +8,7 @@ use pinocchio::{
 // This is the entrypoint for the program.
 program_entrypoint!(process_instruction);
 //Do not allocate memory.
-no_allocator!();
+// no_allocator!();
 // Use the no_std panic handler.
 default_panic_handler!();
 
@@ -26,7 +26,6 @@ fn process_instruction(
     let (ix_disc, instruction_data) = instruction_data
         .split_first()
         .ok_or(ProgramError::InvalidInstructionData)?;
-
     // Second variant, test CUs usage
     // let (ix_disc, instruction_data) = instruction_data
     //     .split_at_checked(4)

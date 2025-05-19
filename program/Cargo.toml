@@ -37,7 +37,3 @@ bench-default = ["no-entrypoint", "std"]
 [[bench]]
 name = "compute_units"
 harness = false
-
-
-[[test]]
-name = "unit_tests"
