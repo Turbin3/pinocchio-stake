@@ -7,6 +7,7 @@ pub mod redelegate;
 pub mod set_lockup;
 pub mod split;
 pub mod delegate_stake;
+pub mod deactivate_delinquent;
 pub mod merge;
 
 pub use authorize_with_seed::*;
@@ -16,6 +17,7 @@ pub use redelegate::*;
 pub use set_lockup::*;
 pub use split::*;
 pub use delegate_stake::*;
+pub use deactivate_delinquent::*;
 pub use merge::*;
 
 #[repr(u8)]

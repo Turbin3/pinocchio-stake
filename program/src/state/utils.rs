@@ -8,12 +8,11 @@ use pinocchio::{
 
 extern crate alloc;
 use super::{
-    get_stake_state, try_get_stake_state_mut, Delegation, Meta, Stake, StakeAuthorize, StakeHistorySysvar, StakeStateV2, VoteState, DEFAULT_WARMUP_COOLDOWN_RATE
+    get_stake_state, try_get_stake_state_mut, Delegation, Epoch, Meta, Stake, StakeAuthorize, StakeHistorySysvar, StakeStateV2, VoteState, DEFAULT_WARMUP_COOLDOWN_RATE
 };
 use crate::{
     consts::{
-        FEATURE_STAKE_RAISE_MINIMUM_DELEGATION_TO_1_SOL, LAMPORTS_PER_SOL, MAX_SIGNERS,
-        NEW_WARMUP_COOLDOWN_RATE,
+        FEATURE_STAKE_RAISE_MINIMUM_DELEGATION_TO_1_SOL, LAMPORTS_PER_SOL, MAX_SIGNERS, MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION, NEW_WARMUP_COOLDOWN_RATE
     },
     helpers::MergeKind,
 };
@@ -399,6 +398,10 @@ pub fn add_le_bytes(lhs: [u8; 8], rhs: [u8; 8]) -> [u8; 8] {
     u64::from_le_bytes(lhs).saturating_add(u64::from_le_bytes(rhs)).to_le_bytes()
 }
 
+pub fn subtract_le_bytes(lhs: [u8; 8], rhs: [u8; 8]) -> [u8; 8] {
+    u64::from_le_bytes(lhs).saturating_sub(u64::from_le_bytes(rhs)).to_le_bytes()
+}
+
 pub fn bytes_to_u64(bytes: [u8; 8]) -> u64 {
     u64::from_le_bytes(bytes)
 }
@@ -594,6 +597,53 @@ pub(crate) fn redelegate_stake(
     stake.delegation.voter_pubkey = *voter_pubkey;
     stake.credits_observed = vote_state.credits().to_be_bytes();
     Ok(())
+}
+
+// --- stake tools copied from solana-stake-interface/tools.rs ---
+/// Check if the provided `epoch_credits` demonstrate active voting over the previous
+/// [`MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION`].
+pub fn acceptable_reference_epoch_credits(
+    epoch_credits: &[(u64, u64, u64)],
+    current_epoch: Epoch
+) -> bool {
+    if
+        let Some(epoch_index) = epoch_credits
+            .len()
+            .checked_sub(MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION)
+    {
+        let mut epoch = current_epoch;
+        for (vote_epoch, ..) in epoch_credits[epoch_index..].iter().rev() {
+            if *vote_epoch != bytes_to_u64(epoch) {
+                return false;
+            }
+            epoch = subtract_le_bytes(epoch, 1u64.to_le_bytes());
+        }
+        true
+    } else {
+        false
+    }
+}
+
+/// Check if the provided `epoch_credits` demonstrate delinquency over the previous
+/// [`MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION`].
+pub fn eligible_for_deactivate_delinquent(
+    epoch_credits: &[(u64, u64, u64)],
+    current_epoch: Epoch
+) -> bool {
+    match epoch_credits.last() {
+        None => true,
+        Some((epoch, ..)) => {
+            if
+                let Some(minimum_epoch) = bytes_to_u64(current_epoch).checked_sub(
+                    bytes_to_u64(MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION.to_le_bytes() as Epoch)
+                )
+            {
+                *epoch <= minimum_epoch
+            } else {
+                false
+            }
+        }
+    }
 }
 
 // --- Hash struct and impls ----
