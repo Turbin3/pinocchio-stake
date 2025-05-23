@@ -30,3 +30,7 @@ pub const VOTE_CREDITS_MAXIMUM_PER_SLOT: u8 = 16;
 pub const HASH_BYTES: usize = 32;
 /// Maximum string length of a base58 encoded hash.
 pub const MAX_BASE58_LEN: usize = 44;
+
+/// The minimum number of epochs before stake account that is delegated to a delinquent vote
+/// account may be unstaked with `StakeInstruction::DeactivateDelinquent`
+pub const MINIMUM_DELINQUENT_EPOCHS_FOR_DEACTIVATION: usize = 5;
